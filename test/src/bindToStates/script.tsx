@@ -22,7 +22,7 @@ const state: State = defineState({
 let renderCounter = 0;
 
 function MessageBox() {
-  return bindToStates([state], {
+  const component = {
     render(props: any, args: ForgoRenderArgs) {
       if (renderCounter === 1) {
         firstPromise.resolve();
@@ -40,7 +40,8 @@ function MessageBox() {
         </div>
       );
     },
-  });
+  };
+  return bindToStates([state], component);
 }
 
 export function run(dom: JSDOM) {
