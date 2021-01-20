@@ -33,7 +33,7 @@ Use bindToStates() while defining your Forgo components to bind one or more stat
 
 ```js
 function MailboxView() {
-  return bindToStates([mailboxState, signinState], {
+  const component = {
     render(props: any, args: ForgoRenderArgs) {
       return (
         <div>
@@ -45,7 +45,8 @@ function MailboxView() {
         </div>
       );
     },
-  });
+  };
+  return bindToStates([mailboxState, signinState], component);
 }
 ```
 
@@ -67,6 +68,19 @@ Here's an example:
 
 ```js
 function MailboxView() {
+  const component = {
+    render(props: any, args: ForgoRenderArgs) {
+      return (
+        <div>
+          {state.messages.length ? (
+            state.messages.map((m) => <p>{m}</p>)
+          ) : (
+            <p>There are no messages for {state.username}.</p>
+          )}
+        </div>
+      );
+    },
+  };
   return bindToStateProps(
     // Render only if mailboxState.messages or mailboxState.drafts
     // or state.username changes.
@@ -74,19 +88,7 @@ function MailboxView() {
       [mailboxState, (state) => [state.messages, state.drafts]],
       [signinState, (state) => [state.username]],
     ],
-    {
-      render(props: any, args: ForgoRenderArgs) {
-        return (
-          <div>
-            {state.messages.length ? (
-              state.messages.map((m) => <p>{m}</p>)
-            ) : (
-              <p>There are no messages for {state.username}.</p>
-            )}
-          </div>
-        );
-      },
-    }
+    component
   );
 }
 ```
