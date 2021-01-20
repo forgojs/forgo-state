@@ -53,9 +53,11 @@ function MailboxView() {
 You could update the state properties any way you choose:
 
 ```js
-// Assume you got some 'data' via an API.
-// The following line causes a rerender.
-mailboxState.messages = data;
+async function updateInbox() {
+  const data = await fetchInboxData();
+  // The next line causes a rerender of the MailboxView component
+  mailboxState.messages = data;
+}
 ```
 
 ## Binding components to specific properties of the state
