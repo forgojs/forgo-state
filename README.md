@@ -64,7 +64,7 @@ async function updateInbox() {
 
 Sometimes, you're interested in rerendering only when a specific property of the state changes. There's another api for this, bindToStateProps().
 
-Usage is similar, but instead of an array of states you're interested in, you'll have to pass an array of [state, propertiesGetter] tuples.
+Usage is similar. But instead of an array of states you're interested in, you'll have to pass an array of [state, propertiesGetter] tuples.
 
 Here's an example:
 
