@@ -1,6 +1,6 @@
 # forgo-state
 
-Easy Application State Management for [Forgo](https://github.com/forgojs/forgo) Apps using JavaScript Proxies.
+Easy Application State Management for [Forgo Apps](https://github.com/forgojs/forgo) using JavaScript Proxies.
 
 ## Installation
 
