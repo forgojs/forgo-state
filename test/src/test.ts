@@ -1,9 +1,11 @@
 import defineState from "./defineState";
 import bindToStates from "./bindToStates";
 import bindToStateProps from "./bindToStateProps";
-import shouldRenderOnce from "./shouldRenderOnce";
+import descendantMustNotRerender from "./descendantMustNotRerender";
+import batchesUpdates from "./batchesUpdates";
 
 defineState();
 bindToStates();
 bindToStateProps();
-shouldRenderOnce();
+descendantMustNotRerender();
+batchesUpdates();

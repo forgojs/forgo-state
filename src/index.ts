@@ -25,12 +25,14 @@ export function defineState<TState extends { [key: string]: any }>(
     set(target: TState, prop: keyof TState, value: any) {
       const entries = stateMap.get(proxy);
 
+      // if bound to the state directly, add for updation on any state change.
       const argsForUncheckedUpdation: ForgoRenderArgs[] = entries
         ? entries
             .filter((x) => !(x as RerenderOnAnyChange<TState, any>).propGetter)
             .map((x) => x.args)
         : [];
 
+      // Get the props before update
       let propsToCompare = entries
         ? entries
             .filter((x) => (x as RerenderOnAnyChange<TState, any>).propGetter)
@@ -42,6 +44,7 @@ export function defineState<TState extends { [key: string]: any }>(
 
       target[prop] = value;
 
+      // Get the props after update
       let updatedProps = entries
         ? entries
             .filter((x) => (x as RerenderOnAnyChange<TState, any>).propGetter)
@@ -51,6 +54,7 @@ export function defineState<TState extends { [key: string]: any }>(
             }))
         : [];
 
+      // concat state based updates and props based updates
       const argsListToUpdate = argsForUncheckedUpdation.concat(
         propsToCompare
           .filter((oldProp, i) =>
@@ -59,9 +63,15 @@ export function defineState<TState extends { [key: string]: any }>(
           .map((x) => x.args)
       );
 
+      // concat latest updates with pending updates.
+      const argsToUpdatePlusPendingArgs = argsListToUpdate.concat(
+        argsToRenderInTheNextCycle
+      );
+
+      // make a map, of node => all args attached to node
       const argsListMap = new Map<ChildNode, ForgoRenderArgs[]>();
 
-      for (const args of argsListToUpdate) {
+      for (const args of argsToUpdatePlusPendingArgs) {
         if (args.element.node) {
           let entry = argsListMap.get(args.element.node);
           if (!entry) {
@@ -72,6 +82,9 @@ export function defineState<TState extends { [key: string]: any }>(
         }
       }
 
+      // Now for each node, find the args with the lowest componentIndex
+      // Rendering the component with the lowest componentIndex
+      // The higher up components get rendered automatically.
       const argsListWithMinComponentIndex: ForgoRenderArgs[] = [];
 
       for (const entries of argsListMap) {
@@ -94,21 +107,21 @@ export function defineState<TState extends { [key: string]: any }>(
         }
       }
 
-      // If we're rendering a parent node, skip the descendent nodes.
+      // Now we gotta find if a node is a child of another node pending rerender
+      // If so, there's no need to render the descendant node.
       const justTheNodes = argsListWithMinComponentIndex
         .map((x) => x.element.node)
         .filter((x) => x) as ChildNode[];
 
-      const argsListOfParentNodes = argsToRenderInTheNextCycle
-        .concat(argsListWithMinComponentIndex)
-        .filter(
-          (x) =>
-            !justTheNodes.some(
-              (y) =>
-                y !== x.element.node && y.contains(x.element.node as ChildNode)
-            )
-        );
+      const argsListOfParentNodes = argsListWithMinComponentIndex.filter(
+        (arg) =>
+          !justTheNodes.some(
+            (node) =>
+              node !== arg.element.node && node.contains(arg.element.node as ChildNode)
+          )
+      );
 
+      argsToRenderInTheNextCycle.length = 0;
       for (const args of argsListOfParentNodes) {
         argsToRenderInTheNextCycle.push(args);
       }
@@ -135,7 +148,7 @@ function doRender() {
         rerender(args.element);
       }
     }
-    argsToRenderInTheNextCycle = [];
+    argsToRenderInTheNextCycle.length = 0;
   }
 }
 
