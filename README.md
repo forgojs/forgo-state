@@ -10,7 +10,7 @@ npm i forgo-state
 
 ## Defining application state variables
 
-First define one or more state variables using the defineState() API.
+Start by defining one or more state variables using the defineState() API. These states can be bound to multiple components in the application.
 
 ```js
 import { bindToStates, defineState } from "forgo-state";
@@ -19,6 +19,7 @@ const mailboxState = defineState({
   messages: [],
   drafts: [],
   spam: [],
+  unread: 0,
 });
 
 const signinState = defineState({
@@ -29,7 +30,7 @@ const signinState = defineState({
 
 ## Binding components to your application state
 
-Use bindToStates() while defining your Forgo components to bind one or more states to a specific component. In the following example, whenever mailboxState or signinState changes, the component is rerendered.
+Use bindToStates() to bind one or more states to any component. In the following example, whenever mailboxState or signinState changes, the bound component MailboxView is rerendered. Similarly, NotificationsBar is also bound to mailboxState.
 
 ```js
 function MailboxView() {
@@ -37,10 +38,10 @@ function MailboxView() {
     render(props: any, args: ForgoRenderArgs) {
       return (
         <div>
-          {state.messages.length ? (
-            state.messages.map((m) => <p>{m}</p>)
+          {mailboxState.messages.length ? (
+            mailboxState.messages.map((m) => <p>{m}</p>)
           ) : (
-            <p>There are no messages for {state.username}.</p>
+            <p>There are no messages for {signinState.username}.</p>
           )}
         </div>
       );
@@ -48,9 +49,26 @@ function MailboxView() {
   };
   return bindToStates([mailboxState, signinState], component);
 }
+
+function NotificationsBar() {
+  const component = {
+    render() {
+      return (
+        <div>
+          {mailboxState.unread > 0 ? (
+            <p>You have {mailboxState.unread} notifications.</p>
+          ) : (
+            <p>There are no notifications.</p>
+          )}
+        </div>
+      );
+    },
+  };
+  return bindToStates([mailboxState], component);
+}
 ```
 
-You could update the state properties any way you choose:
+You could update the state properties directly:
 
 ```js
 async function updateInbox() {
@@ -62,7 +80,7 @@ async function updateInbox() {
 
 ## Binding components to specific properties of the state
 
-Sometimes, you're interested in rerendering only when a specific property of the state changes. There's another api for this, bindToStateProps().
+Sometimes, you're interested in rerendering only when a specific property of a state variable changes. There's another api for this, bindToStateProps().
 
 Usage is similar. But instead of an array of states you're interested in, you'll have to pass an array of [state, propertiesGetter] tuples.
 
@@ -74,10 +92,10 @@ function MailboxView() {
     render(props: any, args: ForgoRenderArgs) {
       return (
         <div>
-          {state.messages.length ? (
-            state.messages.map((m) => <p>{m}</p>)
+          {mailboxState.messages.length ? (
+            mailboxState.messages.map((m) => <p>{m}</p>)
           ) : (
-            <p>There are no messages for {state.username}.</p>
+            <p>There are no messages for {signinState.username}.</p>
           )}
         </div>
       );
@@ -85,7 +103,7 @@ function MailboxView() {
   };
   return bindToStateProps(
     // Render only if mailboxState.messages or mailboxState.drafts
-    // or state.username changes.
+    // or signinState.username changes.
     [
       [mailboxState, (state) => [state.messages, state.drafts]],
       [signinState, (state) => [state.username]],
