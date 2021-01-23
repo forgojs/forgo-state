@@ -1,6 +1,6 @@
 {
   "name": "forgo-state",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "main": "./dist",
   "author": "Jeswin Kumar<jeswinpk@agilehead.com>",
   "repository": {
@@ -8,7 +8,7 @@
     "url": "https://github.com/forgojs/forgo-state"
   },
   "dependencies": {
-    "forgo": "^0.0.34"
+    "forgo": "^0.0.35"
   },
   "devDependencies": {
     "@types/jsdom": "^16.2.6",
