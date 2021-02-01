@@ -3,6 +3,7 @@ import {
   ForgoComponent,
   ForgoElementProps,
   rerender,
+  getForgoState,
 } from "forgo";
 
 export type ForgoProxyState = {};
@@ -73,19 +74,47 @@ export function defineState<TState extends { [key: string]: any }>(
 
       for (const args of argsToUpdatePlusPendingArgs) {
         if (args.element.node) {
-          let entry = argsListMap.get(args.element.node);
-          if (!entry) {
-            entry = [];
-            argsListMap.set(args.element.node, entry);
+          const state = getForgoState(args.element.node);
+          if (state) {
+            const componentState =
+              state.components[args.element.componentIndex];
+            if (componentState.numNodes === 1) {
+              let entry = argsListMap.get(args.element.node);
+              if (!entry) {
+                entry = [];
+                argsListMap.set(args.element.node, entry);
+              }
+              entry.push(args);
+            }
+            // This component rendered a fragment or an array
+            else {
+              const parentElement: HTMLElement = args.element.node
+                .parentElement as HTMLElement;
+              const childNodes = Array.from(parentElement.childNodes);
+              const nodeIndex = childNodes.findIndex(
+                (x) => x === args.element.node
+              );
+              const nodes = childNodes.slice(
+                nodeIndex,
+                nodeIndex + componentState.numNodes
+              );
+              for (const node of nodes) {
+                let entry = argsListMap.get(node);
+                if (!entry) {
+                  entry = [];
+                  argsListMap.set(node, entry);
+                }
+                entry.push(args);
+              }
+            }
           }
-          entry.push(args);
         }
       }
 
       // Now for each node, find the args with the lowest componentIndex
       // Rendering the component with the lowest componentIndex
       // The higher up components get rendered automatically.
-      const argsListWithMinComponentIndex: ForgoRenderArgs[] = [];
+      const argsListWithMinComponentIndex: [ChildNode, ForgoRenderArgs][] = [];
 
       for (const entries of argsListMap) {
         let argsWithMinComponentIndex: ForgoRenderArgs | undefined = undefined;
@@ -103,26 +132,25 @@ export function defineState<TState extends { [key: string]: any }>(
           }
         }
         if (argsWithMinComponentIndex) {
-          argsListWithMinComponentIndex.push(argsWithMinComponentIndex);
+          argsListWithMinComponentIndex.push([node, argsWithMinComponentIndex]);
         }
       }
 
-      // Now we gotta find if a node is a child of another node pending rerender
-      // If so, there's no need to render the descendant node.
+      // 1. We gotta find if a node is a child of another node pending rerender
+      //   If so, there's no need to render the descendant node.
+      // 2. Also, if a component renders multiple nodes, include only the root node.
       const justTheNodes = argsListWithMinComponentIndex
-        .map((x) => x.element.node)
+        .map(([node]) => node)
         .filter((x) => x) as ChildNode[];
 
       const argsListOfParentNodes = argsListWithMinComponentIndex.filter(
-        (arg) =>
-          !justTheNodes.some(
-            (node) =>
-              node !== arg.element.node && node.contains(arg.element.node as ChildNode)
-          )
+        ([node, args]) =>
+          !justTheNodes.some((x) => x !== node && x.contains(node)) &&
+          node === args.element.node
       );
 
       argsToRenderInTheNextCycle.length = 0;
-      for (const args of argsListOfParentNodes) {
+      for (const [node, args] of argsListOfParentNodes) {
         argsToRenderInTheNextCycle.push(args);
       }
 
