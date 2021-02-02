@@ -4,6 +4,8 @@ import {
   ForgoElementProps,
   rerender,
   getForgoState,
+  NodeAttachedComponentState,
+  NodeAttachedState,
 } from "forgo";
 
 export type ForgoProxyState = {};
@@ -65,92 +67,59 @@ export function defineState<TState extends { [key: string]: any }>(
       );
 
       // concat latest updates with pending updates.
-      const argsToUpdatePlusPendingArgs = argsListToUpdate.concat(
-        argsToRenderInTheNextCycle
+      const argsToUpdatePlusPendingArgs = argsToRenderInTheNextCycle.concat(
+        argsListToUpdate.filter((x) => !argsToRenderInTheNextCycle.includes(x))
       );
 
-      // make a map, of node => all args attached to node
-      const argsListMap = new Map<ChildNode, ForgoRenderArgs[]>();
+      const componentStatesAndArgs: [
+        NodeAttachedComponentState<any>,
+        ForgoRenderArgs
+      ][] = argsToUpdatePlusPendingArgs.map((x) => {
+        const state = getForgoState(x.element.node as ChildNode);
+        if (!state) {
+          throw new Error("Missing state on node.");
+        } else {
+          return [state.components[x.element.componentIndex], x];
+        }
+      });
 
-      for (const args of argsToUpdatePlusPendingArgs) {
-        if (args.element.node) {
-          const state = getForgoState(args.element.node);
-          if (state) {
-            const componentState =
-              state.components[args.element.componentIndex];
-            if (componentState.numNodes === 1) {
-              let entry = argsListMap.get(args.element.node);
-              if (!entry) {
-                entry = [];
-                argsListMap.set(args.element.node, entry);
-              }
-              entry.push(args);
-            }
-            // This component rendered a fragment or an array
-            else {
-              const parentElement: HTMLElement = args.element.node
-                .parentElement as HTMLElement;
-              const childNodes = Array.from(parentElement.childNodes);
-              const nodeIndex = childNodes.findIndex(
-                (x) => x === args.element.node
+      // If a parent component is already rerendering,
+      //  don't queue the child rerender.
+      const componentsToUpdate = componentStatesAndArgs.filter((item) => {
+        const [componentState, args] = item;
+
+        let node: ChildNode | null = args.element.node as ChildNode;
+        let state: NodeAttachedState | undefined = getForgoState(node);
+        let parentStates = (state as NodeAttachedState).components.slice(
+          0,
+          args.element.componentIndex
+        );
+        while (node && state) {
+          if (
+            parentStates.some((x) =>
+              componentStatesAndArgs.some(
+                ([compStateInArray]) =>
+                  compStateInArray.component === x.component
+              )
+            )
+          ) {
+            return false;
+          }
+          node = node.parentElement;
+          if (node) {
+            state = getForgoState(node);
+            if (state) {
+              parentStates = state.components.filter(
+                (x) => x !== componentState
               );
-              const nodes = childNodes.slice(
-                nodeIndex,
-                nodeIndex + componentState.numNodes
-              );
-              for (const node of nodes) {
-                let entry = argsListMap.get(node);
-                if (!entry) {
-                  entry = [];
-                  argsListMap.set(node, entry);
-                }
-                entry.push(args);
-              }
             }
           }
         }
-      }
-
-      // Now for each node, find the args with the lowest componentIndex
-      // Rendering the component with the lowest componentIndex
-      // The higher up components get rendered automatically.
-      const argsListWithMinComponentIndex: [ChildNode, ForgoRenderArgs][] = [];
-
-      for (const entries of argsListMap) {
-        let argsWithMinComponentIndex: ForgoRenderArgs | undefined = undefined;
-        const [node, argsList] = entries;
-        for (const args of argsList) {
-          if (argsWithMinComponentIndex) {
-            if (
-              args.element.componentIndex <
-              argsWithMinComponentIndex.element.componentIndex
-            ) {
-              argsWithMinComponentIndex = args;
-            }
-          } else {
-            argsWithMinComponentIndex = args;
-          }
-        }
-        if (argsWithMinComponentIndex) {
-          argsListWithMinComponentIndex.push([node, argsWithMinComponentIndex]);
-        }
-      }
-
-      // 1. We gotta find if a node is a child of another node pending rerender
-      //   If so, there's no need to render the descendant node.
-      // 2. Also, if a component renders multiple nodes, include only the root node.
-      const justTheNodes = argsListWithMinComponentIndex
-        .map(([node]) => node)
-        .filter((x) => x) as ChildNode[];
-
-      const argsListOfParentNodes = argsListWithMinComponentIndex.filter(
-        ([node, args]) =>
-          !justTheNodes.some((x) => x !== node && x.contains(node)) &&
-          node === args.element.node
-      );
+        return true;
+      });
 
       argsToRenderInTheNextCycle.length = 0;
-      for (const [node, args] of argsListOfParentNodes) {
+      for (const [, args] of componentsToUpdate) {
         argsToRenderInTheNextCycle.push(args);
       }
 

@@ -4,7 +4,7 @@ import { run } from "./script";
 import "should";
 
 export default function () {
-  it("binds to states", async () => {
+  it("batches updates", async () => {
     const dom = new JSDOM(htmlFile(), {
       runScripts: "outside-only",
       resources: "usable",
