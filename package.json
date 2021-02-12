@@ -1,7 +1,8 @@
 {
   "name": "forgo-state",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "main": "./dist",
+  "types": "./dist/index.d.ts",
   "author": "Jeswin Kumar<jeswinpk@agilehead.com>",
   "repository": {
     "type": "git",
