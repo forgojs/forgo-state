@@ -21,11 +21,11 @@ type RerenderOnAnyChange<TState, TProps extends ForgoElementProps> = {
 
 const stateMap: Map<any, StateMapEntry<any>[]> = new Map();
 
-export function defineState<TState extends { [key: string]: any }>(
+export function defineState<TState extends Record<string, any>>(
   state: TState
 ): TState {
   const handlers = {
-    set(target: TState, prop: keyof TState, value: any) {
+    set(target: TState, prop: string & keyof TState, value: any) {
       const entries = stateMap.get(proxy);
 
       // if bound to the state directly, add for updation on any state change.
@@ -131,7 +131,7 @@ export function defineState<TState extends { [key: string]: any }>(
     },
   };
 
-  const proxy = new Proxy(state, handlers);
+  const proxy = new Proxy<TState>(state, handlers);
 
   return proxy;
 }
