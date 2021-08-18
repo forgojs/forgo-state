@@ -9,7 +9,7 @@
     "url": "https://github.com/forgojs/forgo-state"
   },
   "dependencies": {
-    "forgo": "^1.4.5"
+    "forgo": "^1.4.7"
   },
   "devDependencies": {
     "@types/jsdom": "^16.2.10",
