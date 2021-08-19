@@ -1,12 +1,14 @@
 import { DOMWindow, JSDOM } from "jsdom";
 import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
-import { defineState, bindToStateProps } from "../../../";
+import { bindToStates, defineState } from "../../index.js";
 import promiseSignal from "../promiseSignal";
 
 let window: DOMWindow;
 let document: HTMLDocument;
 
 const firstPromise = promiseSignal();
+const secondPromise = promiseSignal();
+
 type State = {
   messages: string[];
   account: string;
@@ -24,6 +26,8 @@ function MessageBox() {
     render(props: any, args: ForgoRenderArgs) {
       if (renderCounter === 1) {
         firstPromise.resolve();
+      } else if (renderCounter === 2) {
+        secondPromise.resolve();
       }
       renderCounter++;
       return (
@@ -37,7 +41,7 @@ function MessageBox() {
       );
     },
   };
-  return bindToStateProps([[state, (x) => [x.messages]]], component);
+  return bindToStates([state], component);
 }
 
 export function run(dom: JSDOM) {
@@ -45,6 +49,7 @@ export function run(dom: JSDOM) {
   document = window.document;
   window.myAppState = state;
   window.firstPromise = firstPromise;
+  window.secondPromise = secondPromise;
   setCustomEnv({ window, document });
 
   window.addEventListener("load", () => {

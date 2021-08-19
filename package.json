@@ -1,32 +1,32 @@
 {
   "name": "forgo-state",
   "version": "1.0.19",
-  "main": "./dist",
-  "types": "./dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
   "author": "Jeswin Kumar<jeswinpk@agilehead.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/forgojs/forgo-state"
   },
   "dependencies": {
-    "forgo": "^1.4.7"
+    "forgo": "^1.4.12"
   },
   "devDependencies": {
-    "@types/jsdom": "^16.2.10",
-    "@types/mocha": "^8.2.2",
+    "@types/jsdom": "^16.2.13",
+    "@types/mocha": "^9.0.0",
     "@types/should": "^13.0.0",
     "esm": "^3.2.25",
-    "jsdom": "^16.5.2",
-    "mocha": "^8.3.2",
+    "jsdom": "^17.0.0",
+    "mocha": "^9.0.3",
     "rimraf": "^3.0.2",
     "should": "^13.2.3",
-    "typescript": "^4.2.3"
+    "typescript": "^4.3.5"
   },
   "scripts": {
     "clean": "rimraf ./dist",
-    "build": "tsc",
-    "build-test": "tsc -p tsconfig.test.json",
-    "test": "mocha -r esm dist/test/test.js"
+    "build": "npm run clean && mkdir -p dist && npx tsc",
+    "test": "node --experimental-specifier-resolution=node node_modules/mocha/lib/cli/cli.js dist/test/test.js"
   },
   "license": "MIT"
 }

@@ -1,11 +1,12 @@
 import { DOMWindow, JSDOM } from "jsdom";
 import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
-import { bindToStates, defineState } from "../../../";
+import { defineState, bindToStateProps } from "../../index.js";
 import promiseSignal from "../promiseSignal";
 
 let window: DOMWindow;
 let document: HTMLDocument;
 
+const firstPromise = promiseSignal();
 type State = {
   messages: string[];
   account: string;
@@ -16,26 +17,19 @@ const state: State = defineState({
   account: "unknown",
 });
 
-const firstPromise = promiseSignal();
+let renderCounter = 0;
 
 function MessageBox() {
   const component = {
     render(props: any, args: ForgoRenderArgs) {
-      window.renderCounter++;
-      if (window.renderCounter === 2) {
+      if (renderCounter === 1) {
         firstPromise.resolve();
       }
+      renderCounter++;
       return (
         <div>
           {state.messages.length ? (
-            <div>
-              <p>Messages for {state.account}</p>
-              <ul>
-                {state.messages.map((m) => (
-                  <li>{m}</li>
-                ))}
-              </ul>
-            </div>
+            state.messages.map((m) => <p>{m}</p>)
           ) : (
             <p>There are no messages for {state.account}.</p>
           )}
@@ -43,14 +37,13 @@ function MessageBox() {
       );
     },
   };
-  return bindToStates([state], component);
+  return bindToStateProps([[state, (x) => [x.messages]]], component);
 }
 
 export function run(dom: JSDOM) {
   window = dom.window;
   document = window.document;
   window.myAppState = state;
-  window.renderCounter = 0;
   window.firstPromise = firstPromise;
   setCustomEnv({ window, document });
 

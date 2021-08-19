@@ -1,6 +1,6 @@
 import { DOMWindow, JSDOM } from "jsdom";
 import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
-import { bindToStates, defineState } from "../../../";
+import { bindToStates, defineState } from "../../index.js";
 import promiseSignal from "../promiseSignal";
 
 let window: DOMWindow;
@@ -9,11 +9,13 @@ let document: HTMLDocument;
 const firstPromise = promiseSignal();
 
 type State = {
-  totals: number;
+  messages: string[];
+  account: string;
 };
 
 const state: State = defineState({
-  totals: 100,
+  messages: [],
+  account: "unknown",
 });
 
 function Parent() {
@@ -24,11 +26,10 @@ function Parent() {
       }
       window.parentCounter++;
       return (
-        <>
+        <div>
+          <p>This is the parent.</p>
           <Child />
-          <Child />
-          <Child />
-        </>
+        </div>
       );
     },
   };
@@ -41,7 +42,7 @@ function Child() {
       window.childCounter++;
       return (
         <div>
-          <p>Total is {state.totals * window.childCounter}.</p>
+          <p>This is the child.</p>
         </div>
       );
     },
@@ -56,7 +57,7 @@ export function run(dom: JSDOM) {
   window.firstPromise = firstPromise;
   window.parentCounter = 0;
   window.childCounter = 0;
-
+  
   setCustomEnv({ window, document });
 
   window.addEventListener("load", () => {

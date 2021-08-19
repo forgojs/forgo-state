@@ -1,10 +1,10 @@
 import { JSDOM } from "jsdom";
-import htmlFile from "../htmlFile";
-import { run } from "./script";
-import "should";
+import htmlFile from "../htmlFile.js";
+import { run } from "./script.js";
+import should from "should";
 
 export default function () {
-  it("binds to state props", async () => {
+  it("batches updates", async () => {
     const dom = new JSDOM(htmlFile(), {
       runScripts: "outside-only",
       resources: "usable",
@@ -20,21 +20,22 @@ export default function () {
     });
 
     window.document.body.innerHTML.should.containEql(
-      "<p>There are no messages for unknown.</p>"
-    );
-
-    window.myAppState.account = "boom";
-
-    window.document.body.innerHTML.should.containEql(
-      "<p>There are no messages for unknown.</p>"
+      "There are no messages for unknown."
     );
 
     window.myAppState.messages = ["hello", "world"];
+    window.myAppState.account = "boom";
 
-    await window.firstPromise.promise;
+    // await window.firstPromise.promise;
+
+    await new Promise((res) => {
+      setTimeout(res, 100);
+    });
+
+    window.renderCounter.should.equal(2);
 
     window.document.body.innerHTML.should.containEql(
-      "<p>hello</p><p>world</p>"
+      "<div><p>Messages for boom</p><ul><li>hello</li><li>world</li></ul></div>"
     );
   });
 }
