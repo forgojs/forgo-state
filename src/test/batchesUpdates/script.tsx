@@ -1,3 +1,4 @@
+import * as forgo from "forgo";
 import { DOMWindow, JSDOM } from "jsdom";
 import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
