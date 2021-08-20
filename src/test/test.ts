@@ -1,9 +1,9 @@
-import defineState from "./defineState";
-import bindToStates from "./bindToStates";
-import bindToStateProps from "./bindToStateProps";
-import descendantMustNotRerender from "./descendantMustNotRerender";
-import batchesUpdates from "./batchesUpdates";
-import fragments from "./fragments";
+import defineState from "./defineState/index.js";
+import bindToStates from "./bindToStates/index.js";
+import bindToStateProps from "./bindToStateProps/index.js";
+import descendantMustNotRerender from "./descendantMustNotRerender/index.js";
+import batchesUpdates from "./batchesUpdates/index.js";
+import fragments from "./fragments/index.js";
 
 defineState();
 bindToStates();

@@ -2,7 +2,7 @@ import * as forgo from "forgo";
 import { DOMWindow, JSDOM } from "jsdom";
 import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
-import promiseSignal from "../promiseSignal";
+import promiseSignal from "../promiseSignal.js";
 
 let window: DOMWindow;
 let document: HTMLDocument;
