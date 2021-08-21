@@ -10,8 +10,9 @@
     "sourceMap": true,
     "strict": true,
     "jsx": "react",
-    "jsxFactory": "forgo.h",
-    "jsxFragmentFactory": "forgo.Fragment"
+    "jsxFactory": "forgo.createElement",
+    "jsxFragmentFactory": "forgo.Fragment",
+    "declaration": true
   },
   "include": ["./src/**/*"]
 }
