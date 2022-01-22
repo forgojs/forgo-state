@@ -1,10 +1,9 @@
 import { JSDOM } from "jsdom";
 import htmlFile from "../htmlFile.js";
-import { run } from "./script.js";
-import should from "should";
+import { addNewMessage, renderAgain, run } from "./script.js";
 
 export default function () {
-  it("must not rerender descendent", async () => {
+  it("doesn't render disconnected nodes", async () => {
     const dom = new JSDOM(htmlFile(), {
       runScripts: "outside-only",
       resources: "usable",
@@ -19,11 +18,9 @@ export default function () {
       });
     });
 
-    window.myAppState.account = "boom";
+    addNewMessage();
+    renderAgain();
 
-    await window.firstPromise.promise;
-
-    should.equal(window.parentCounter, 2);
-    should.equal(window.childCounter, 2);
+    window.document.body.innerHTML.trim().should.containEql(`<div id="root"></div>`)
   });
 }

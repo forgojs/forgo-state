@@ -1,6 +1,6 @@
 {
   "name": "forgo-state",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,6 +26,7 @@
   "scripts": {
     "clean": "rimraf ./dist",
     "build": "npm run clean && mkdir -p dist && npx tsc",
+    "build-dev": "npx tsc",
     "test": "mocha dist/test/test.js"
   },
   "license": "MIT"

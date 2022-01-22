@@ -1,3 +1,11 @@
+/*
+  How it works:
+
+  - Users create JS proxies using the defineState() function.
+  - They bind this state (the proxy object) to various components via bindToStates() and bindToStateProps() functions.
+  - Since the proxy let's us capture changes to itself, we trigger component rerenders (on bound components) when that happens.
+*/
+
 import {
   ForgoRenderArgs,
   ForgoComponent,
@@ -8,58 +16,63 @@ import {
   NodeAttachedState,
 } from "forgo";
 
-export type ForgoProxyState = {};
-
-type StateMapEntry<TProps extends ForgoElementProps> = {
+type StateBoundComponentInfo<TProps extends ForgoElementProps> = {
   component: ForgoComponent<TProps>;
   args: ForgoRenderArgs;
 };
 
-type RerenderOnAnyChange<TState, TProps extends ForgoElementProps> = {
+type PropertyBoundComponentInfo<TState, TProps extends ForgoElementProps> = {
   propGetter: (state: TState) => any[];
-} & StateMapEntry<TProps>;
+} & StateBoundComponentInfo<TProps>;
 
-const stateMap: Map<any, StateMapEntry<any>[]> = new Map();
+const stateToComponentsMap: Map<any, StateBoundComponentInfo<any>[]> =
+  new Map();
 
 export function defineState<TState extends Record<string, any>>(
   state: TState
 ): TState {
   const handlers = {
     set(target: TState, prop: string & keyof TState, value: any) {
-      const entries = stateMap.get(proxy);
+      const entries = stateToComponentsMap.get(proxy);
 
       // if bound to the state directly, add for updation on any state change.
-      const argsForUncheckedUpdation: ForgoRenderArgs[] = entries
+      const stateBoundComponentArgs: ForgoRenderArgs[] = entries
         ? entries
-            .filter((x) => !(x as RerenderOnAnyChange<TState, any>).propGetter)
+            .filter(
+              (x) => !(x as PropertyBoundComponentInfo<TState, any>).propGetter
+            )
             .map((x) => x.args)
         : [];
 
-      // Get the props before update
-      let propsToCompare = entries
-        ? entries
-            .filter((x) => (x as RerenderOnAnyChange<TState, any>).propGetter)
-            .map((x) => ({
-              args: x.args,
-              props: (x as RerenderOnAnyChange<TState, any>).propGetter(target),
-            }))
+      const propBoundComponents = entries
+        ? entries.filter(
+            (x) => (x as PropertyBoundComponentInfo<TState, any>).propGetter
+          )
         : [];
+
+      // Get the props before update
+      let propBoundComponentArgs = propBoundComponents.map((x) => ({
+        args: x.args,
+        props: (x as PropertyBoundComponentInfo<TState, any>).propGetter(
+          target
+        ),
+      }));
 
       target[prop] = value;
 
       // Get the props after update
-      let updatedProps = entries
-        ? entries
-            .filter((x) => (x as RerenderOnAnyChange<TState, any>).propGetter)
-            .map((x) => ({
-              args: x.args,
-              props: (x as RerenderOnAnyChange<TState, any>).propGetter(target),
-            }))
-        : [];
+      let updatedProps = propBoundComponents.map((x) => ({
+        args: x.args,
+        props: (x as PropertyBoundComponentInfo<TState, any>).propGetter(
+          target
+        ),
+      }));
 
-      // concat state based updates and props based updates
-      const argsListToUpdate = argsForUncheckedUpdation.concat(
-        propsToCompare
+      // State bound components (a) need to be rerendered anyway.
+      // Prop bound components (b) are rendendered if changed.
+      // So concat (a) and (b)
+      const argsListToUpdate = stateBoundComponentArgs.concat(
+        propBoundComponentArgs
           .filter((oldProp, i) =>
             oldProp.props.some((p, j) => p !== updatedProps[i].props[j])
           )
@@ -84,7 +97,7 @@ export function defineState<TState extends Record<string, any>>(
       });
 
       // If a parent component is already rerendering,
-      //  don't queue the child rerender.
+      // don't queue the child rerender.
       const componentsToUpdate = componentStatesAndArgs.filter((item) => {
         const [componentState, args] = item;
 
@@ -141,7 +154,7 @@ let argsToRenderInTheNextCycle: ForgoRenderArgs[] = [];
 function doRender() {
   if (argsToRenderInTheNextCycle.length) {
     for (const args of argsToRenderInTheNextCycle) {
-      if (args.element.node) {
+      if (args.element.node && args.element.node.isConnected) {
         rerender(args.element);
       }
     }
@@ -167,15 +180,15 @@ export function bindToStateProps<TState, TProps extends ForgoElementProps>(
     ...component,
     mount(props: TProps, args: ForgoRenderArgs) {
       for (const [state, propGetter] of stateBindings) {
-        let entries = stateMap.get(state);
+        let entries = stateToComponentsMap.get(state);
 
         if (!entries) {
           entries = [];
-          stateMap.set(state, entries);
+          stateToComponentsMap.set(state, entries);
         }
 
         if (propGetter) {
-          const newEntry: RerenderOnAnyChange<TState, TProps> = {
+          const newEntry: PropertyBoundComponentInfo<TState, TProps> = {
             component: wrappedComponent,
             propGetter,
             args,
@@ -183,7 +196,7 @@ export function bindToStateProps<TState, TProps extends ForgoElementProps>(
 
           entries.push(newEntry);
         } else {
-          const newEntry: StateMapEntry<TProps> = {
+          const newEntry: StateBoundComponentInfo<TProps> = {
             component: wrappedComponent,
             args,
           };
@@ -198,10 +211,10 @@ export function bindToStateProps<TState, TProps extends ForgoElementProps>(
     },
     unmount(props: TProps, args: ForgoRenderArgs) {
       for (const [state] of stateBindings) {
-        let entry = stateMap.get(state);
+        let entry = stateToComponentsMap.get(state);
 
         if (entry) {
-          stateMap.set(
+          stateToComponentsMap.set(
             state,
             entry.filter((x) => x.component !== wrappedComponent)
           );
