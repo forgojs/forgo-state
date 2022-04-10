@@ -160,8 +160,11 @@ function doRender() {
   if (argsToRenderInTheNextCycle.size > 0) {
     for (const args of argsToRenderInTheNextCycle) {
       if (args.element.node && args.element.node.isConnected) {
-        rerender(args.element);
+        // Dequeue the component before the render, so that if the component
+        // triggers more renders of itself they don't get no-op'd
         argsToRenderInTheNextCycle.delete(args);
+
+        rerender(args.element);
       }
     }
   }
