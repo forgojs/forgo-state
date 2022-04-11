@@ -80,8 +80,11 @@ export function defineState<TState extends Record<string, any>>(
       );
 
       // concat latest updates with pending updates.
-      const argsToUpdatePlusPendingArgs = argsToRenderInTheNextCycle.concat(
-        argsListToUpdate.filter((x) => !argsToRenderInTheNextCycle.includes(x))
+      const argsToUpdatePlusPendingArgs = Array.from(
+        new Set([
+          ...Array.from(argsToRenderInTheNextCycle),
+          ...argsListToUpdate,
+        ])
       );
 
       const componentStatesAndArgs: [
@@ -131,9 +134,8 @@ export function defineState<TState extends Record<string, any>>(
         return true;
       });
 
-      argsToRenderInTheNextCycle.length = 0;
       for (const [, args] of componentsToUpdate) {
-        argsToRenderInTheNextCycle.push(args);
+        argsToRenderInTheNextCycle.add(args);
       }
 
       setTimeout(() => {
@@ -149,16 +151,22 @@ export function defineState<TState extends Record<string, any>>(
   return proxy;
 }
 
-let argsToRenderInTheNextCycle: ForgoRenderArgs[] = [];
+// We make this a Set because if rendering a component triggers another
+// forgo-state update we want to be sure we still finish updating everything we
+// had queued, plus everything the subrender enqueues
+const argsToRenderInTheNextCycle = new Set<ForgoRenderArgs>();
 
 function doRender() {
-  if (argsToRenderInTheNextCycle.length) {
+  if (argsToRenderInTheNextCycle.size > 0) {
     for (const args of argsToRenderInTheNextCycle) {
       if (args.element.node && args.element.node.isConnected) {
+        // Dequeue the component before the render, so that if the component
+        // triggers more renders of itself they don't get no-op'd
+        argsToRenderInTheNextCycle.delete(args);
+
         rerender(args.element);
       }
     }
-    argsToRenderInTheNextCycle.length = 0;
   }
 }
 
