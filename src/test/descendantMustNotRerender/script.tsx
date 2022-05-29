@@ -1,8 +1,10 @@
 import * as forgo from "forgo";
 import { DOMWindow, JSDOM } from "jsdom";
-import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
+import { mount, setCustomEnv, Component } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
 import promiseSignal from "../promiseSignal.js";
+
+import type { ForgoComponentCtor } from "forgo";
 
 let window: DOMWindow;
 let document: HTMLDocument;
@@ -19,9 +21,9 @@ const state: State = defineState({
   account: "unknown",
 });
 
-function Parent() {
-  const component = {
-    render(props: any, args: ForgoRenderArgs) {
+const Parent: ForgoComponentCtor = () => {
+  const component = new Component({
+    render() {
       if (window.parentCounter === 1) {
         firstPromise.resolve();
       }
@@ -33,13 +35,14 @@ function Parent() {
         </div>
       );
     },
-  };
-  return bindToStates([state], component);
-}
+  });
+  bindToStates([state], component);
+  return component;
+};
 
-function Child() {
-  const component = {
-    render(props: any, args: ForgoRenderArgs) {
+const Child: ForgoComponentCtor = () => {
+  const component = new Component({
+    render() {
       window.childCounter++;
       return (
         <div>
@@ -47,9 +50,10 @@ function Child() {
         </div>
       );
     },
-  };
-  return bindToStates([state], component);
-}
+  });
+  bindToStates([state], component);
+  return component;
+};
 
 export function run(dom: JSDOM) {
   window = dom.window;
@@ -58,7 +62,7 @@ export function run(dom: JSDOM) {
   window.firstPromise = firstPromise;
   window.parentCounter = 0;
   window.childCounter = 0;
-  
+
   setCustomEnv({ window, document });
 
   window.addEventListener("load", () => {

@@ -1,8 +1,10 @@
 import * as forgo from "forgo";
 import { DOMWindow, JSDOM } from "jsdom";
-import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
+import { mount, setCustomEnv, Component } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
 import promiseSignal from "../promiseSignal.js";
+
+import type { ForgoComponentCtor } from "forgo";
 
 let window: DOMWindow;
 let document: HTMLDocument;
@@ -22,9 +24,9 @@ const state: State = defineState({
 
 let renderCounter = 0;
 
-function MessageBox() {
-  const component = {
-    render(props: any, args: ForgoRenderArgs) {
+const MessageBox: ForgoComponentCtor = () => {
+  const component = new Component({
+    render() {
       if (renderCounter === 1) {
         firstPromise.resolve();
       } else if (renderCounter === 2) {
@@ -41,9 +43,10 @@ function MessageBox() {
         </div>
       );
     },
-  };
-  return bindToStates([state], component);
-}
+  });
+  bindToStates([state], component);
+  return component;
+};
 
 export function run(dom: JSDOM) {
   window = dom.window;
