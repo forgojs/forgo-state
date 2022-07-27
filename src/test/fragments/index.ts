@@ -12,13 +12,7 @@ export default function () {
       });
       const window = dom.window;
 
-      run(dom);
-
-      await new Promise<void>((resolve) => {
-        window.addEventListener("load", () => {
-          resolve();
-        });
-      });
+      await run(dom);
 
       window.myAppState.totals = 200;
       await window.firstPromise.promise;

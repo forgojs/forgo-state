@@ -3,7 +3,7 @@ import { DOMWindow, JSDOM } from "jsdom";
 import { mount, setCustomEnv, Component } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
 
-import type { ForgoComponentCtor } from "forgo";
+import type { ForgoNewComponentCtor } from "forgo";
 
 let window: DOMWindow;
 let document: Document;
@@ -28,7 +28,7 @@ export function renderAgain() {
   component.update();
 }
 
-const Parent: ForgoComponentCtor = () => {
+const Parent: ForgoNewComponentCtor = () => {
   component = new Component({
     render() {
       return counter === 0 ? <MessageBox /> : null;
@@ -37,7 +37,7 @@ const Parent: ForgoComponentCtor = () => {
   return component;
 };
 
-const MessageBox: ForgoComponentCtor = () => {
+const MessageBox: ForgoNewComponentCtor = () => {
   const component = new Component({
     render() {
       return <p>You have {state.messageCount} messages.</p>;
@@ -47,12 +47,19 @@ const MessageBox: ForgoComponentCtor = () => {
   return component;
 };
 
-export function run(dom: JSDOM) {
+export async function run(dom: JSDOM) {
   window = dom.window;
   document = window.document;
   setCustomEnv({ window, document });
 
-  window.addEventListener("load", () => {
-    mount(<Parent />, document.getElementById("root"));
+  return new Promise((resolve, reject) => {
+    window.addEventListener("load", () => {
+      try {
+        mount(<Parent />, document.getElementById("root"));
+        resolve(undefined);
+      } catch (ex) {
+        reject(ex);
+      }
+    });
   });
 }

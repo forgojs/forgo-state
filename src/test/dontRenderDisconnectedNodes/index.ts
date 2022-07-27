@@ -1,4 +1,6 @@
 import { JSDOM } from "jsdom";
+import should from "should";
+
 import htmlFile from "../htmlFile.js";
 import { addNewMessage, renderAgain, run } from "./script.js";
 
@@ -10,17 +12,14 @@ export default function () {
     });
     const window = dom.window;
 
-    run(dom);
-
-    await new Promise<void>((resolve) => {
-      window.addEventListener("load", () => {
-        resolve();
-      });
-    });
+    await run(dom);
 
     addNewMessage();
     renderAgain();
 
-    window.document.body.innerHTML.trim().should.containEql(`<div id="root"></div>`)
+    should.equal(
+      window.document.body.innerHTML.trim(),
+      '<div id="root"><!--null component render--></div>'
+    );
   });
 }

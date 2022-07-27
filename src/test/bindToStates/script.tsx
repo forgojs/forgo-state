@@ -4,7 +4,7 @@ import { mount, setCustomEnv, Component } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
 import promiseSignal from "../promiseSignal.js";
 
-import type { ForgoComponentCtor } from "forgo";
+import type { ForgoNewComponentCtor } from "forgo";
 
 let window: DOMWindow;
 let document: HTMLDocument;
@@ -24,7 +24,7 @@ const state: State = defineState({
 
 let renderCounter = 0;
 
-const MessageBox: ForgoComponentCtor = () => {
+const MessageBox: ForgoNewComponentCtor = () => {
   const component = new Component({
     render() {
       if (renderCounter === 1) {
@@ -48,7 +48,7 @@ const MessageBox: ForgoComponentCtor = () => {
   return component;
 };
 
-export function run(dom: JSDOM) {
+export async function run(dom: JSDOM) {
   window = dom.window;
   document = window.document;
   window.myAppState = state;
@@ -56,7 +56,14 @@ export function run(dom: JSDOM) {
   window.secondPromise = secondPromise;
   setCustomEnv({ window, document });
 
-  window.addEventListener("load", () => {
-    mount(<MessageBox />, document.getElementById("root"));
+  return new Promise((resolve, reject) => {
+    window.addEventListener("load", () => {
+      try {
+        mount(<MessageBox />, document.getElementById("root"));
+        resolve(undefined);
+      } catch (ex) {
+        reject(ex);
+      }
+    });
   });
 }

@@ -6,13 +6,12 @@
   - Since the proxy lets us capture changes to itself, we trigger component rerenders (on bound components) when that happens.
 */
 
-import {
-  Component,
-  ForgoElementProps,
-  rerender,
-  getForgoState,
-  NodeAttachedComponentState,
+import { Component, getForgoState, legacyComponentSyntaxCompat } from "forgo";
+
+import type {
+  ForgoComponent,
   NodeAttachedState,
+  NodeAttachedComponentState,
 } from "forgo";
 
 interface StateBoundComponentInfo {
@@ -81,18 +80,22 @@ export function defineState<TState extends Record<string, any>>(
       const componentStatesAndArgs: [
         NodeAttachedComponentState<any>,
         Component
-      ][] = argsToUpdatePlusPendingArgs.map((component) => {
+      ][] = argsToUpdatePlusPendingArgs.map((component, index) => {
         const state = getForgoState(
           component.__internal.element.node as ChildNode
         );
         if (!state) {
           throw new Error("Missing state on node.");
-        } else {
-          return [
-            state.components[component.__internal.element.componentIndex],
-            component,
-          ];
         }
+        const componentState =
+          state.components[component.__internal.element.componentIndex];
+        if (!componentState) {
+          throw new Error(
+            "Attempted to update a component that doesn't exist anymore"
+          );
+        }
+
+        return [componentState, component];
       });
 
       // If a parent component is already rerendering,
@@ -156,20 +159,13 @@ export function defineState<TState extends Record<string, any>>(
 const componentsToRenderInTheNextCycle = new Set<Component>();
 
 function doRender() {
-  if (componentsToRenderInTheNextCycle.size > 0) {
-    for (const component of componentsToRenderInTheNextCycle) {
-      if (
-        component.__internal.element.node &&
-        component.__internal.element.node.isConnected
-      ) {
-        // Dequeue the component before the render, so that if the component
-        // triggers more renders of itself they don't get no-op'd
-        componentsToRenderInTheNextCycle.delete(component);
+  Array.from(componentsToRenderInTheNextCycle).forEach((component) => {
+    // Dequeue the component before the render, so that if the component
+    // triggers more renders of itself they don't get no-op'd
+    componentsToRenderInTheNextCycle.delete(component);
 
-        rerender(component.__internal.element);
-      }
-    }
-  }
+    component.update();
+  });
 }
 
 export function bindToStates<TState>(
@@ -184,9 +180,14 @@ export function bindToStates<TState>(
 
 export function bindToStateProps<TState>(
   stateBindings: [state: TState, propGetter?: (state: TState) => any[]][],
-  component: Component<any>
-): void {
-  component.addEventListener("mount", () => {
+  suppliedComponent: Component<any> | ForgoComponent<any>
+): Component<any> {
+  const component =
+    suppliedComponent instanceof Component
+      ? suppliedComponent
+      : legacyComponentSyntaxCompat(suppliedComponent);
+
+  component.mount(() => {
     for (const [state, propGetter] of stateBindings) {
       let entries = stateToComponentsMap.get(state);
 
@@ -212,18 +213,24 @@ export function bindToStateProps<TState>(
     }
   });
 
-  component.addEventListener("unmount", () => {
+  component.unmount(() => {
     for (const [state] of stateBindings) {
       let entry = stateToComponentsMap.get(state);
 
       if (entry) {
-        stateToComponentsMap.set(
-          state,
-          entry.filter((x) => x.component !== component)
+        entry.splice(
+          entry.findIndex((x) => x.component === component),
+          1
         );
+        // This could be optimized into an unshift / pop at the specific index
+        componentsToRenderInTheNextCycle.delete(component);
       } else {
         throw new Error("Component entry missing in state map.");
       }
     }
   });
+
+  // TODO: We only do this to avoid breaking compat with the legacy component
+  // syntax, but with Forgo v4 it won't be necessary.
+  return component;
 }
