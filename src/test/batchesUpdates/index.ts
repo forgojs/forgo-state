@@ -11,13 +11,7 @@ export default function () {
     });
     const window = dom.window;
 
-    run(dom);
-
-    await new Promise<void>((resolve) => {
-      window.addEventListener("load", () => {
-        resolve();
-      });
-    });
+    await run(dom);
 
     window.document.body.innerHTML.should.containEql(
       "There are no messages for unknown."
@@ -34,8 +28,11 @@ export default function () {
 
     window.renderCounter.should.equal(2);
 
-    window.document.body.innerHTML.should.containEql(
-      "<div><p>Messages for boom</p><ul><li>hello</li><li>world</li></ul></div>"
+    should.equal(
+      window.document.body.innerHTML.includes(
+        "<div><p>Messages for boom</p><ul><li>hello</li><li>world</li></ul></div>"
+      ),
+      true
     );
   });
 }

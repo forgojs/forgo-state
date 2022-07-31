@@ -11,15 +11,11 @@ export default function () {
     });
     const window = dom.window;
 
-    run(dom);
+    await run(dom);
 
-    await new Promise<void>((resolve) => {
-      window.addEventListener("load", () => {
-        resolve();
-      });
-    });
-
-    window.document.body.innerHTML.should.containEql("There are no messages for unknown.");
+    window.document.body.innerHTML.should.containEql(
+      "There are no messages for unknown."
+    );
 
     window.myAppState.account = "boom";
 

@@ -1,25 +1,23 @@
 import * as forgo from "forgo";
 import { DOMWindow, JSDOM } from "jsdom";
-import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
+import { mount, setCustomEnv, Component } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
 import promiseSignal from "../promiseSignal.js";
 
+import type { ForgoNewComponentCtor } from "forgo";
+
 let window: DOMWindow;
-let document: HTMLDocument;
+let document: Document;
 
 const firstPromise = promiseSignal();
 
-type State = {
-  totals: number;
-};
-
-const state: State = defineState({
+const state = defineState({
   totals: 100,
 });
 
-function Parent() {
-  const component = {
-    render(props: any, args: ForgoRenderArgs) {
+const Parent: ForgoNewComponentCtor = () => {
+  const component = new Component({
+    render() {
       if (window.parentCounter === 1) {
         firstPromise.resolve();
       }
@@ -32,13 +30,14 @@ function Parent() {
         </>
       );
     },
-  };
-  return bindToStates([state], component);
-}
+  });
+  bindToStates([state], component);
+  return component;
+};
 
-function Child() {
-  const component = {
-    render(props: any, args: ForgoRenderArgs) {
+const Child: ForgoNewComponentCtor = () => {
+  const component = new Component({
+    render() {
       window.childCounter++;
       return (
         <div>
@@ -46,11 +45,12 @@ function Child() {
         </div>
       );
     },
-  };
-  return bindToStates([state], component);
-}
+  });
+  bindToStates([state], component);
+  return component;
+};
 
-export function run(dom: JSDOM) {
+export async function run(dom: JSDOM) {
   window = dom.window;
   document = window.document;
   window.myAppState = state;
@@ -60,7 +60,14 @@ export function run(dom: JSDOM) {
 
   setCustomEnv({ window, document });
 
-  window.addEventListener("load", () => {
-    mount(<Parent />, document.getElementById("root"));
+  return new Promise((resolve, reject) => {
+    window.addEventListener("load", () => {
+      try {
+        mount(<Parent />, document.getElementById("root"));
+        resolve(undefined);
+      } catch (ex) {
+        reject(ex);
+      }
+    });
   });
 }

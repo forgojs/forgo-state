@@ -1,3 +1,6 @@
+import sourceMapSupport from "source-map-support";
+sourceMapSupport.install();
+
 import defineState from "./defineState/index.js";
 import bindToStates from "./bindToStates/index.js";
 import bindToStateProps from "./bindToStateProps/index.js";

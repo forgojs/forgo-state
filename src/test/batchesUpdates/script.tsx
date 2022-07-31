@@ -1,8 +1,10 @@
 import * as forgo from "forgo";
 import { DOMWindow, JSDOM } from "jsdom";
-import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
+import { mount, setCustomEnv, Component } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
 import promiseSignal from "../promiseSignal.js";
+
+import type { ForgoNewComponentCtor } from "forgo";
 
 let window: DOMWindow;
 let document: HTMLDocument;
@@ -19,9 +21,9 @@ const state: State = defineState({
 
 const firstPromise = promiseSignal();
 
-function MessageBox() {
-  const component = {
-    render(props: any, args: ForgoRenderArgs) {
+const MessageBox: ForgoNewComponentCtor = () => {
+  const component = new Component({
+    render() {
       window.renderCounter++;
       if (window.renderCounter === 2) {
         firstPromise.resolve();
@@ -43,11 +45,12 @@ function MessageBox() {
         </div>
       );
     },
-  };
-  return bindToStates([state], component);
-}
+  });
+  bindToStates([state], component);
+  return component;
+};
 
-export function run(dom: JSDOM) {
+export async function run(dom: JSDOM) {
   window = dom.window;
   document = window.document;
   window.myAppState = state;
@@ -55,7 +58,14 @@ export function run(dom: JSDOM) {
   window.firstPromise = firstPromise;
   setCustomEnv({ window, document });
 
-  window.addEventListener("load", () => {
-    mount(<MessageBox />, document.getElementById("root"));
+  return new Promise((resolve, reject) => {
+    window.addEventListener("load", () => {
+      try {
+        mount(<MessageBox />, document.getElementById("root"));
+        resolve(undefined);
+      } catch (ex) {
+        reject(ex);
+      }
+    });
   });
 }

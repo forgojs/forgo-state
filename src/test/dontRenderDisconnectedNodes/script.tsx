@@ -1,7 +1,9 @@
 import * as forgo from "forgo";
 import { DOMWindow, JSDOM } from "jsdom";
-import { mount, ForgoRenderArgs, setCustomEnv } from "forgo";
+import { mount, setCustomEnv, Component } from "forgo";
 import { bindToStates, defineState } from "../../index.js";
+
+import type { ForgoNewComponentCtor } from "forgo";
 
 let window: DOMWindow;
 let document: Document;
@@ -20,36 +22,44 @@ export function addNewMessage() {
 
 let counter = 0;
 
-let renderArgs: ForgoRenderArgs;
+let component: Component;
 export function renderAgain() {
   counter++;
-  renderArgs.update();
+  component.update();
 }
 
-function Parent() {
-  return {
-    render(props: {}, args: ForgoRenderArgs) {
-      renderArgs = args;
+const Parent: ForgoNewComponentCtor = () => {
+  component = new Component({
+    render() {
       return counter === 0 ? <MessageBox /> : null;
     },
-  };
-}
+  });
+  return component;
+};
 
-function MessageBox() {
-  const component = {
-    render(props: any, args: ForgoRenderArgs) {
+const MessageBox: ForgoNewComponentCtor = () => {
+  const component = new Component({
+    render() {
       return <p>You have {state.messageCount} messages.</p>;
     },
-  };
-  return bindToStates([state], component);
-}
+  });
+  bindToStates([state], component);
+  return component;
+};
 
-export function run(dom: JSDOM) {
+export async function run(dom: JSDOM) {
   window = dom.window;
   document = window.document;
   setCustomEnv({ window, document });
 
-  window.addEventListener("load", () => {
-    mount(<Parent />, document.getElementById("root"));
+  return new Promise((resolve, reject) => {
+    window.addEventListener("load", () => {
+      try {
+        mount(<Parent />, document.getElementById("root"));
+        resolve(undefined);
+      } catch (ex) {
+        reject(ex);
+      }
+    });
   });
 }
