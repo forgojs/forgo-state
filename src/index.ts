@@ -171,8 +171,8 @@ function doRender() {
 export function bindToStates<TState>(
   states: TState[],
   component: Component<any>
-): void {
-  bindToStateProps(
+): Component<any> {
+  return bindToStateProps(
     states.map((state) => [state, undefined]),
     component
   );
