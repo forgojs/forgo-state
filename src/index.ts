@@ -6,16 +6,17 @@
   - Since the proxy lets us capture changes to itself, we trigger component rerenders (on bound components) when that happens.
 */
 
-import { Component, getForgoState, legacyComponentSyntaxCompat } from "forgo";
-
-import type {
+import {
+  Component,
+  ComponentState,
+  getForgoState,
+  legacyComponentSyntaxCompat,
   ForgoComponent,
   NodeAttachedState,
-  NodeAttachedComponentState,
 } from "forgo";
 
 interface StateBoundComponentInfo {
-  component: Component;
+  component: Component<any>;
 }
 
 interface PropertyBoundComponentInfo<TState> extends StateBoundComponentInfo {
@@ -78,7 +79,7 @@ export function defineState<TState extends Record<string, any>>(
       );
 
       const componentStatesAndArgs: [
-        NodeAttachedComponentState<any>,
+        ComponentState<any>,
         Component
       ][] = argsToUpdatePlusPendingArgs.map((component, index) => {
         const state = getForgoState(
@@ -87,7 +88,7 @@ export function defineState<TState extends Record<string, any>>(
         if (!state) {
           throw new Error("Missing state on node.");
         }
-        const componentState =
+        const componentState: ComponentState<any> =
           state.components[component.__internal.element.componentIndex];
         if (!componentState) {
           throw new Error(
@@ -156,7 +157,7 @@ export function defineState<TState extends Record<string, any>>(
 // We make this a Set because if rendering a component triggers another
 // forgo-state update we want to be sure we still finish updating everything we
 // had queued, plus everything the subrender enqueues
-const componentsToRenderInTheNextCycle = new Set<Component>();
+const componentsToRenderInTheNextCycle = new Set<Component<any>>();
 
 function doRender() {
   Array.from(componentsToRenderInTheNextCycle).forEach((component) => {
@@ -168,20 +169,20 @@ function doRender() {
   });
 }
 
-export function bindToStates<TState>(
+export function bindToStates<TState, TProps extends object>(
   states: TState[],
-  component: Component<any>
-): Component<any> {
+  component: Component<TProps>
+): Component<TProps> {
   return bindToStateProps(
     states.map((state) => [state, undefined]),
     component
   );
 }
 
-export function bindToStateProps<TState>(
+export function bindToStateProps<TState, TProps extends object>(
   stateBindings: [state: TState, propGetter?: (state: TState) => any[]][],
-  suppliedComponent: Component<any> | ForgoComponent<any>
-): Component<any> {
+  suppliedComponent: Component<TProps> | ForgoComponent<TProps>
+): Component<TProps> {
   const component =
     suppliedComponent instanceof Component
       ? suppliedComponent
